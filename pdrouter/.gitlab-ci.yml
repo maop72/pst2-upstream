@@ -1,0 +1,60 @@
+stages:
+  - test
+  - e2e
+
+unit-tests:
+  stage: test
+  timeout: 5 minutes
+  tags:
+    - shell
+  cache:
+    key: "unit-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .cargo/registry/
+      - target/
+  variables:
+    CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  script:
+    - cargo test --bins -- --test-threads=4
+
+e2e-tests:
+  stage: e2e
+  timeout: 10 minutes
+  tags:
+    - shell
+  # Para compilar el router como binario estático sin root ni Docker se usa
+  # cargo-zigbuild: un subcomando de Cargo que usa Zig como linker y empaqueta
+  # la musl libc, eliminando cualquier dependencia de glibc del host.
+  #
+  # - cargo-zigbuild se instala con `cargo install` (sin root) en CARGO_HOME/bin.
+  # - Zig se descarga como binario estático a .zig/ (sin root).
+  # - Ambos se cachean para no repetir la instalación en cada pipeline.
+  # - PATH se amplía al inicio del before_script para que cargo y cargo-zigbuild
+  #   estén disponibles tanto en before_script como en script.
+  before_script:
+    # Los runners shell no leen ~/.bashrc; sourced el env de cargo/rustup
+    # para que rustup, cargo y los binarios instalados estén en PATH.
+    - '[ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env" || true'
+    - export PATH="${CI_PROJECT_DIR}/.cargo/bin:${CI_PROJECT_DIR}/.zig:${PATH}"
+    - command -v rustup >/dev/null 2>&1 && rustup target add x86_64-unknown-linux-musl || true
+    - |
+      if [ ! -f "${CI_PROJECT_DIR}/.cargo/bin/cargo-zigbuild" ]; then
+        cargo install --locked cargo-zigbuild --version "0.20.1"
+      fi
+    - |
+      if [ ! -f "${CI_PROJECT_DIR}/.zig/zig" ]; then
+        mkdir -p "${CI_PROJECT_DIR}/.zig"
+        curl -sL "https://ziglang.org/download/0.13.0/zig-linux-x86_64-0.13.0.tar.xz" \
+          | tar -xJ --strip-components=1 -C "${CI_PROJECT_DIR}/.zig"
+      fi
+  cache:
+    key: "e2e-${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .cargo/registry/
+      - .cargo/bin/cargo-zigbuild
+      - .zig/
+  variables:
+    CARGO_HOME: "${CI_PROJECT_DIR}/.cargo"
+  script:
+    - export PATH="${CI_PROJECT_DIR}/.cargo/bin:${CI_PROJECT_DIR}/.zig:${PATH}"
+    - e2e-kathara-lab/run_e2e_tests.sh

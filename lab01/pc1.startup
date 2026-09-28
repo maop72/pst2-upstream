@@ -1,0 +1,4 @@
+ip link set eth0 up
+ip addr add 200.0.0.10/24 dev eth0
+ip route add default via 200.0.0.1
+ip route add 202.0.0.0/24 via 200.0.0.3

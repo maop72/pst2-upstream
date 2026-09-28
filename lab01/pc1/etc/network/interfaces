@@ -1,0 +1,9 @@
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 200.0.0.10
+    netmask 255.255.255.0
+    gateway 200.0.0.1
+    up ip route add 202.0.0.0/24 via 200.0.0.3

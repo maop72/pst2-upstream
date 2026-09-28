@@ -1,0 +1,19 @@
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+    address 201.0.0.2
+    netmask 255.255.255.0
+    up ip route add 202.0.0.0/16 via 201.0.0.1
+
+auto eth1
+iface eth1 inet static
+    address 202.0.0.2
+    netmask 255.255.255.0
+    gateway 202.0.0.3
+
+auto eth2
+iface eth2 inet static
+    address 203.0.0.2
+    netmask 255.255.255.0
