@@ -1,9 +1,10 @@
-// =============================================================================
-// Buffer para una trama Ethernet de tamaño fijo
-// =============================================================================
+// frame.rs  v1.2
+// Octubre 2026
 
 use crate::arp::ETH_TYPE_ARP;
-use crate::eth::{write_eth_header, EthView, ETH_HEADER_SIZE, ETH_TYPE_IPV4, MAX_FRAME_SIZE};
+use crate::eth::{
+    write_eth_header, EthView, ETH_HEADER_SIZE, ETH_TYPE_IPV4, MAX_FRAME_SIZE,
+};
 use crate::ipv4::{Ipv4Header, IP_HEADER_MIN_LEN};
 use crate::utils::{format_ip, format_mac};
 
@@ -25,11 +26,6 @@ impl Frame {
         &self.data[..self.len]
     }
 
-    // =========================================================================
-    // API 1.1
-    // =========================================================================
-
-    /// Crea un Frame a partir de una cabecera Ethernet y su payload.
     pub fn from_eth(
         dst: [u8; 6],
         src: [u8; 6],
@@ -59,72 +55,70 @@ impl Frame {
         frame
     }
 
-    /// Devuelve una vista de la cabecera Ethernet de la trama.
     pub fn eth(&self) -> EthView<'_> {
         EthView {
             data: self.as_slice(),
         }
     }
 
-    /// Muestra información interpretada sobre la trama.
-    pub fn show(&self) {
-        println!("Frame");
-        println!("  Longitud: {} bytes", self.len);
+    pub fn show(&self) -> String {
+        self.eth().show()
+    }
+}
 
-        if self.len < ETH_HEADER_SIZE {
-            println!("  Trama Ethernet incompleta");
-            return;
+impl<'a> EthView<'a> {
+    pub fn show(&self) -> String {
+        let mut text = String::new();
+
+        text.push_str(&format!(
+            "Frame\n  Longitud: {} bytes\n",
+            self.data.len()
+        ));
+
+        if self.data.len() < ETH_HEADER_SIZE {
+            text.push_str("  Trama Ethernet incompleta");
+            return text;
         }
 
-        let eth = self.eth();
+        text.push_str("  Ethernet\n");
+        text.push_str(&format!(
+            "    Origen:  {}\n",
+            format_mac(self.src_mac())
+        ));
+        text.push_str(&format!(
+            "    Destino: {}\n",
+            format_mac(self.dst_mac())
+        ));
 
-        println!("  Ethernet");
-        println!("    Origen:  {}", format_mac(eth.src_mac()));
-        println!("    Destino: {}", format_mac(eth.dst_mac()));
-
-        let ethertype = eth.ether_type();
+        let ethertype = self.ether_type();
 
         if ethertype == ETH_TYPE_ARP {
-            println!("    Tipo:    ARP");
-            self.show_arp();
-            return;
+            text.push_str("    Tipo:    ARP\n");
+            text.push_str(&self.show_arp());
+            return text;
         }
 
         if ethertype == ETH_TYPE_IPV4 {
-            println!("    Tipo:    IPv4");
-            self.show_ipv4();
-            return;
+            text.push_str("    Tipo:    IPv4\n");
+            text.push_str(&self.show_ipv4());
+            return text;
         }
 
-        println!(
+        text.push_str(&format!(
             "    Tipo:    desconocido (0x{:02x}{:02x})",
             ethertype[0], ethertype[1]
-        );
+        ));
+
+        text
     }
 
-    // =========================================================================
-    // Funciones privadas utilizadas por show()
-    // =========================================================================
-
-    fn show_arp(&self) {
-        let eth = self.eth();
-        let data = eth.payload();
-
-        // Cabecera ARP Ethernet/IPv4:
-        //
-        //   0..2   Hardware type
-        //   2..4   Protocol type
-        //   4     Hardware address length
-        //   5     Protocol address length
-        //   6..8   Operation
-        //   8..14  Sender hardware address
-        //   14..18 Sender protocol address
-        //   18..24 Target hardware address
-        //   24..28 Target protocol address
+    fn show_arp(&self) -> String {
+        let data = self.payload();
+        let mut text = String::new();
 
         if data.len() < 28 {
-            println!("    ARP incompleto");
-            return;
+            text.push_str("    ARP incompleto");
+            return text;
         }
 
         let operation = u16::from_be_bytes([data[6], data[7]]);
@@ -153,72 +147,87 @@ impl Frame {
             _ => "desconocida",
         };
 
-        println!("    ARP");
-        println!(
-            "      Operación: {} ({})",
+        text.push_str("    ARP\n");
+        text.push_str(&format!(
+            "      Operación: {} ({})\n",
             operation, operation_name
-        );
-        println!(
-            "      Emisor:    {} / {}",
+        ));
+        text.push_str(&format!(
+            "      Emisor:    {} / {}\n",
             format_ip(sender_ip),
             format_mac(&sender_mac)
-        );
-        println!(
+        ));
+        text.push_str(&format!(
             "      Destino:   {} / {}",
             format_ip(target_ip),
             format_mac(&target_mac)
-        );
+        ));
+
+        text
     }
 
-    fn show_ipv4(&self) {
-        let eth = self.eth();
-        let data = eth.payload();
+    fn show_ipv4(&self) -> String {
+        let data = self.payload();
+        let mut text = String::new();
 
         if data.len() < IP_HEADER_MIN_LEN {
-            println!("    IPv4 incompleto");
-            return;
+            text.push_str("    IPv4 incompleto");
+            return text;
         }
 
         let ip = Ipv4Header { data };
 
-        let protocol = ip.protocol();
+        text.push_str("    IPv4\n");
+        text.push_str(&format!(
+            "      Origen:    {}\n",
+            format_ip(ip.src_ip())
+        ));
+        text.push_str(&format!(
+            "      Destino:   {}\n",
+            format_ip(ip.dst_ip())
+        ));
+        text.push_str(&format!(
+            "      TTL:       {}\n",
+            ip.ttl()
+        ));
 
-        println!("    IPv4");
-        println!("      Origen:    {}", format_ip(ip.src_ip()));
-        println!("      Destino:   {}", format_ip(ip.dst_ip()));
-        println!("      TTL:       {}", ip.ttl());
-
-        match protocol {
+        match ip.protocol() {
             1 => {
-                println!("      Protocolo: ICMP");
-                self.show_icmp(&ip);
+                text.push_str("      Protocolo: ICMP\n");
+                text.push_str(&self.show_icmp(&ip));
             }
-            _ => {
-                println!("      Protocolo: {}", protocol);
+            protocol => {
+                text.push_str(&format!(
+                    "      Protocolo: {}",
+                    protocol
+                ));
             }
         }
+
+        text
     }
 
-    fn show_icmp(&self, ip: &Ipv4Header<'_>) {
+    fn show_icmp(&self, ip: &Ipv4Header<'_>) -> String {
         let data = ip.payload();
+        let mut text = String::new();
 
         if data.len() < 2 {
-            println!("      ICMP incompleto");
-            return;
+            text.push_str("      ICMP incompleto");
+            return text;
         }
 
         let icmp_type = data[0];
         let code = data[1];
 
+        text.push_str("      ICMP\n");
+
         match icmp_type {
             0 => {
-                println!("      ICMP");
-                println!("        Tipo: Echo Reply");
+                text.push_str("        Tipo: Echo Reply");
             }
 
             3 => {
-                println!("      ICMP");
-                println!("        Tipo: Destination Unreachable");
+                text.push_str("        Tipo: Destination Unreachable\n");
 
                 let description = match code {
                     0 => "Network Unreachable",
@@ -226,31 +235,42 @@ impl Frame {
                     _ => "código desconocido",
                 };
 
-                println!("        Código: {} ({})", code, description);
+                text.push_str(&format!(
+                    "        Código: {} ({})",
+                    code, description
+                ));
             }
 
             8 => {
-                println!("      ICMP");
-                println!("        Tipo: Echo Request");
+                text.push_str("        Tipo: Echo Request");
             }
 
             11 => {
-                println!("      ICMP");
-                println!("        Tipo: Time Exceeded");
+                text.push_str("        Tipo: Time Exceeded\n");
 
                 let description = match code {
                     0 => "TTL exceeded in transit",
                     _ => "código desconocido",
                 };
 
-                println!("        Código: {} ({})", code, description);
+                text.push_str(&format!(
+                    "        Código: {} ({})",
+                    code, description
+                ));
             }
 
             _ => {
-                println!("      ICMP");
-                println!("        Tipo: {}", icmp_type);
-                println!("        Código: {}", code);
+                text.push_str(&format!(
+                    "        Tipo: {}\n",
+                    icmp_type
+                ));
+                text.push_str(&format!(
+                    "        Código: {}",
+                    code
+                ));
             }
         }
+
+        text
     }
 }
