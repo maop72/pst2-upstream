@@ -19,13 +19,13 @@ pub const IP_HEADER_MIN_LEN: usize = 20;
 pub const IP_PROTO_ICMP: u8 = 1;
 
 // Inicio de cada campo de la cabecera IPv4 (20 bytes)
-const IP_VER_IHL_OFF:     usize = 0;
+const IP_VER_IHL_OFF: usize = 0;
 const IP_TOTAL_LEN_START: usize = 2;
-const IP_TTL_OFF:         usize = 8;
-const IP_PROTO_OFF:       usize = 9;
-const IP_CHECKSUM_START:  usize = 10;
-const IP_SRC_START:       usize = 12;
-const IP_DST_START:       usize = 16;
+const IP_TTL_OFF: usize = 8;
+const IP_PROTO_OFF: usize = 9;
+const IP_CHECKSUM_START: usize = 10;
+const IP_SRC_START: usize = 12;
+const IP_DST_START: usize = 16;
 
 // =============================================================================
 // Vista de lectura — zero-copy sobre &[u8]
@@ -42,7 +42,10 @@ impl<'a> Ipv4Header<'a> {
         (self.data[IP_VER_IHL_OFF] & 0x0F) as usize * 4
     }
     pub fn total_length(&self) -> [u8; 2] {
-        [self.data[IP_TOTAL_LEN_START], self.data[IP_TOTAL_LEN_START + 1]]
+        [
+            self.data[IP_TOTAL_LEN_START],
+            self.data[IP_TOTAL_LEN_START + 1],
+        ]
     }
     pub fn ttl(&self) -> u8 {
         self.data[IP_TTL_OFF]
@@ -51,10 +54,20 @@ impl<'a> Ipv4Header<'a> {
         self.data[IP_PROTO_OFF]
     }
     pub fn src_ip(&self) -> [u8; 4] {
-        [self.data[IP_SRC_START], self.data[IP_SRC_START + 1], self.data[IP_SRC_START + 2], self.data[IP_SRC_START + 3]]
+        [
+            self.data[IP_SRC_START],
+            self.data[IP_SRC_START + 1],
+            self.data[IP_SRC_START + 2],
+            self.data[IP_SRC_START + 3],
+        ]
     }
     pub fn dst_ip(&self) -> [u8; 4] {
-        [self.data[IP_DST_START], self.data[IP_DST_START + 1], self.data[IP_DST_START + 2], self.data[IP_DST_START + 3]]
+        [
+            self.data[IP_DST_START],
+            self.data[IP_DST_START + 1],
+            self.data[IP_DST_START + 2],
+            self.data[IP_DST_START + 3],
+        ]
     }
     pub fn is_icmp(&self) -> bool {
         self.protocol() == IP_PROTO_ICMP

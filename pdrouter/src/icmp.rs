@@ -23,10 +23,10 @@ pub const ICMP_HEADER_MIN_LEN: usize = 8;
 const ICMP_TYPE_ECHO_REPLY: u8 = 0;
 
 // Inicio de cada campo de la cabecera ICMP
-const ICMP_TYPE_OFF:       usize = 0;
-const ICMP_CODE_OFF:       usize = 1;
+const ICMP_TYPE_OFF: usize = 0;
+const ICMP_CODE_OFF: usize = 1;
 const ICMP_CHECKSUM_START: usize = 2;
-const ICMP_DATA_START:     usize = 4;
+const ICMP_DATA_START: usize = 4;
 
 const ICMP_TYPE_DEST_UNREACHABLE: u8 = 3;
 const ICMP_CODE_NET_UNREACHABLE: u8 = 0;
@@ -94,7 +94,9 @@ pub fn handle_echo_request(
     if !eth.is_ipv4() {
         return None;
     }
-    let ip = Ipv4Header { data: eth.payload() };
+    let ip = Ipv4Header {
+        data: eth.payload(),
+    };
     if !ip.is_icmp() || ip.dst_ip() != our_ip {
         return None;
     }
@@ -108,7 +110,12 @@ pub fn handle_echo_request(
     let reply_len = packet.len();
     let mut res = [0u8; MAX_FRAME_SIZE];
 
-    write_eth_header(&mut res[..ETH_HEADER_SIZE], eth.src_mac(), our_mac, ETH_TYPE_IPV4);
+    write_eth_header(
+        &mut res[..ETH_HEADER_SIZE],
+        eth.src_mac(),
+        our_mac,
+        ETH_TYPE_IPV4,
+    );
     write_ipv4_header(
         &mut res[ip_start..ip_start + IP_HEADER_MIN_LEN],
         ip.dst_ip(),
@@ -131,7 +138,9 @@ pub fn handle_echo_reply(packet: &[u8], expected_ip: [u8; 4]) -> bool {
     if !eth.is_ipv4() {
         return false;
     }
-    let ip = Ipv4Header { data: eth.payload() };
+    let ip = Ipv4Header {
+        data: eth.payload(),
+    };
     if !ip.is_icmp() || ip.src_ip() != expected_ip {
         return false;
     }
@@ -162,13 +171,17 @@ pub fn write_icmp_echo_request_frame(
     dst_mac: &[u8],
     dst_ip: [u8; 4],
 ) -> [u8; ICMP_ECHO_FRAME_LEN] {
-    let ip_total_len =
-        (IP_HEADER_MIN_LEN + ICMP_HEADER_MIN_LEN + ICMP_ECHO_DATA_LEN) as u16;
+    let ip_total_len = (IP_HEADER_MIN_LEN + ICMP_HEADER_MIN_LEN + ICMP_ECHO_DATA_LEN) as u16;
     let mut frame = [0u8; ICMP_ECHO_FRAME_LEN];
     let ip_start = ETH_HEADER_SIZE;
     let icmp_start = ip_start + IP_HEADER_MIN_LEN;
 
-    write_eth_header(&mut frame[..ETH_HEADER_SIZE], dst_mac, our_mac, ETH_TYPE_IPV4);
+    write_eth_header(
+        &mut frame[..ETH_HEADER_SIZE],
+        dst_mac,
+        our_mac,
+        ETH_TYPE_IPV4,
+    );
     write_ipv4_header(
         &mut frame[ip_start..ip_start + IP_HEADER_MIN_LEN],
         our_ip,
@@ -208,9 +221,14 @@ pub fn write_icmp_time_exceeded_frame(
     orig_8_bytes: &[u8],
 ) -> [u8; ETH_HEADER_SIZE + IP_HEADER_MIN_LEN + ICMP_ERROR_PAYLOAD_LEN] {
     write_icmp_error_frame(
-        our_mac, our_ip, dst_mac, dst_ip,
-        ICMP_TYPE_TIME_EXCEEDED, ICMP_CODE_TTL_EXCEEDED,
-        orig_ip_header, orig_8_bytes,
+        our_mac,
+        our_ip,
+        dst_mac,
+        dst_ip,
+        ICMP_TYPE_TIME_EXCEEDED,
+        ICMP_CODE_TTL_EXCEEDED,
+        orig_ip_header,
+        orig_8_bytes,
     )
 }
 
@@ -224,9 +242,14 @@ pub fn write_icmp_net_unreachable_frame(
     orig_8_bytes: &[u8],
 ) -> [u8; ETH_HEADER_SIZE + IP_HEADER_MIN_LEN + ICMP_ERROR_PAYLOAD_LEN] {
     write_icmp_error_frame(
-        our_mac, our_ip, dst_mac, dst_ip,
-        ICMP_TYPE_DEST_UNREACHABLE, ICMP_CODE_NET_UNREACHABLE,
-        orig_ip_header, orig_8_bytes,
+        our_mac,
+        our_ip,
+        dst_mac,
+        dst_ip,
+        ICMP_TYPE_DEST_UNREACHABLE,
+        ICMP_CODE_NET_UNREACHABLE,
+        orig_ip_header,
+        orig_8_bytes,
     )
 }
 
@@ -240,9 +263,14 @@ pub fn write_icmp_host_unreachable_frame(
     orig_8_bytes: &[u8],
 ) -> [u8; ETH_HEADER_SIZE + IP_HEADER_MIN_LEN + ICMP_ERROR_PAYLOAD_LEN] {
     write_icmp_error_frame(
-        our_mac, our_ip, dst_mac, dst_ip,
-        ICMP_TYPE_DEST_UNREACHABLE, ICMP_CODE_HOST_UNREACHABLE,
-        orig_ip_header, orig_8_bytes,
+        our_mac,
+        our_ip,
+        dst_mac,
+        dst_ip,
+        ICMP_TYPE_DEST_UNREACHABLE,
+        ICMP_CODE_HOST_UNREACHABLE,
+        orig_ip_header,
+        orig_8_bytes,
     )
 }
 
@@ -272,7 +300,12 @@ fn write_icmp_error_frame(
     let ip_start = ETH_HEADER_SIZE;
     let icmp_start = ip_start + IP_HEADER_MIN_LEN;
 
-    write_eth_header(&mut frame[..ETH_HEADER_SIZE], dst_mac, our_mac, ETH_TYPE_IPV4);
+    write_eth_header(
+        &mut frame[..ETH_HEADER_SIZE],
+        dst_mac,
+        our_mac,
+        ETH_TYPE_IPV4,
+    );
     write_ipv4_header(
         &mut frame[ip_start..ip_start + IP_HEADER_MIN_LEN],
         our_ip,
@@ -323,9 +356,8 @@ mod tests {
     #[test]
     fn time_exceeded_tipo_y_codigo() {
         let orig = make_orig_ip_header();
-        let frame = write_icmp_time_exceeded_frame(
-            &OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8],
-        );
+        let frame =
+            write_icmp_time_exceeded_frame(&OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8]);
         let icmp_start = ETH_HEADER_SIZE + IP_HEADER_MIN_LEN;
         assert_eq!(frame[icmp_start], ICMP_TYPE_TIME_EXCEEDED);
         assert_eq!(frame[icmp_start + 1], ICMP_CODE_TTL_EXCEEDED);
@@ -334,9 +366,8 @@ mod tests {
     #[test]
     fn net_unreachable_tipo_y_codigo() {
         let orig = make_orig_ip_header();
-        let frame = write_icmp_net_unreachable_frame(
-            &OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8],
-        );
+        let frame =
+            write_icmp_net_unreachable_frame(&OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8]);
         let icmp_start = ETH_HEADER_SIZE + IP_HEADER_MIN_LEN;
         assert_eq!(frame[icmp_start], ICMP_TYPE_DEST_UNREACHABLE);
         assert_eq!(frame[icmp_start + 1], ICMP_CODE_NET_UNREACHABLE);
@@ -345,9 +376,8 @@ mod tests {
     #[test]
     fn host_unreachable_tipo_y_codigo() {
         let orig = make_orig_ip_header();
-        let frame = write_icmp_host_unreachable_frame(
-            &OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8],
-        );
+        let frame =
+            write_icmp_host_unreachable_frame(&OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8]);
         let icmp_start = ETH_HEADER_SIZE + IP_HEADER_MIN_LEN;
         assert_eq!(frame[icmp_start], ICMP_TYPE_DEST_UNREACHABLE);
         assert_eq!(frame[icmp_start + 1], ICMP_CODE_HOST_UNREACHABLE);
@@ -356,9 +386,8 @@ mod tests {
     #[test]
     fn checksum_icmp_error_valido() {
         let orig = make_orig_ip_header();
-        let frame = write_icmp_time_exceeded_frame(
-            &OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8],
-        );
+        let frame =
+            write_icmp_time_exceeded_frame(&OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0u8; 8]);
         let icmp_start = ETH_HEADER_SIZE + IP_HEADER_MIN_LEN;
         assert_eq!(
             calculate_checksum(&frame[icmp_start..icmp_start + ICMP_ERROR_PAYLOAD_LEN]),
@@ -369,9 +398,8 @@ mod tests {
     #[test]
     fn error_contiene_ip_header_original() {
         let orig = make_orig_ip_header();
-        let frame = write_icmp_time_exceeded_frame(
-            &OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0xAB; 8],
-        );
+        let frame =
+            write_icmp_time_exceeded_frame(&OUR_MAC, OUR_IP, &DST_MAC, DST_IP, &orig, &[0xAB; 8]);
         let icmp_start = ETH_HEADER_SIZE + IP_HEADER_MIN_LEN;
         // Cabecera IP original en bytes [8..28] del payload ICMP
         assert_eq!(&frame[icmp_start + 8..icmp_start + 28], &orig);

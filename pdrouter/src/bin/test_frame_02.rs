@@ -3,8 +3,6 @@
 // Ejecutar con
 // cargo run --bin test_frame_02
 
-
-
 #[path = "../arp.rs"]
 mod arp;
 
@@ -31,31 +29,19 @@ fn main() {
     // ------------------------------------------------------------
 
     let arp_request = [
-        0x00, 0x01,             // Hardware type: Ethernet
-        0x08, 0x00,             // Protocol type: IPv4
-        0x06,                   // Hardware address length
-        0x04,                   // Protocol address length
-        0x00, 0x01,             // Operation: Request
-
+        0x00, 0x01, // Hardware type: Ethernet
+        0x08, 0x00, // Protocol type: IPv4
+        0x06, // Hardware address length
+        0x04, // Protocol address length
+        0x00, 0x01, // Operation: Request
         // Sender MAC
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55,
-
-        // Sender IP: 192.168.1.10
-        192, 168, 1, 10,
-
-        // Target MAC
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-        // Target IP: 192.168.1.1
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, // Sender IP: 192.168.1.10
+        192, 168, 1, 10, // Target MAC
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // Target IP: 192.168.1.1
         192, 168, 1, 1,
     ];
 
-    let frame = Frame::from_eth(
-        dst,
-        src,
-        [0x08, 0x06],
-        &arp_request,
-    );
+    let frame = Frame::from_eth(dst, src, [0x08, 0x06], &arp_request);
 
     println!("================ ARP Request ================");
     println!("{}", frame.show());
@@ -65,11 +51,11 @@ fn main() {
     // ------------------------------------------------------------
 
     let icmp_echo_request = [
-        8,                      // Type: Echo Request
-        0,                      // Code
-        0, 0,                   // Checksum (no se comprueba en este test)
-        0x12, 0x34,             // Identifier
-        0x00, 0x01,             // Sequence number
+        8, // Type: Echo Request
+        0, // Code
+        0, 0, // Checksum (no se comprueba en este test)
+        0x12, 0x34, // Identifier
+        0x00, 0x01, // Sequence number
     ];
 
     let frame = ipv4_icmp_frame(
@@ -90,11 +76,11 @@ fn main() {
     // ------------------------------------------------------------
 
     let icmp_echo_reply = [
-        0,                      // Type: Echo Reply
-        0,                      // Code
-        0, 0,                   // Checksum
-        0x12, 0x34,             // Identifier
-        0x00, 0x01,             // Sequence number
+        0, // Type: Echo Reply
+        0, // Code
+        0, 0, // Checksum
+        0x12, 0x34, // Identifier
+        0x00, 0x01, // Sequence number
     ];
 
     let frame = ipv4_icmp_frame(
@@ -116,10 +102,10 @@ fn main() {
     // ------------------------------------------------------------
 
     let icmp_network_unreachable = [
-        3,                      // Type: Destination Unreachable
-        0,                      // Code: Network Unreachable
-        0, 0,                   // Checksum
-        0, 0, 0, 0,             // Unused
+        3, // Type: Destination Unreachable
+        0, // Code: Network Unreachable
+        0, 0, // Checksum
+        0, 0, 0, 0, // Unused
     ];
 
     let frame = ipv4_icmp_frame(
@@ -141,10 +127,10 @@ fn main() {
     // ------------------------------------------------------------
 
     let icmp_host_unreachable = [
-        3,                      // Type: Destination Unreachable
-        1,                      // Code: Host Unreachable
-        0, 0,                   // Checksum
-        0, 0, 0, 0,             // Unused
+        3, // Type: Destination Unreachable
+        1, // Code: Host Unreachable
+        0, 0, // Checksum
+        0, 0, 0, 0, // Unused
     ];
 
     let frame = ipv4_icmp_frame(
@@ -165,10 +151,10 @@ fn main() {
     // ------------------------------------------------------------
 
     let icmp_time_exceeded = [
-        11,                     // Type: Time Exceeded
-        0,                      // Code: TTL exceeded in transit
-        0, 0,                   // Checksum
-        0, 0, 0, 0,             // Unused
+        11, // Type: Time Exceeded
+        0,  // Code: TTL exceeded in transit
+        0, 0, // Checksum
+        0, 0, 0, 0, // Unused
     ];
 
     let frame = ipv4_icmp_frame(
@@ -184,7 +170,6 @@ fn main() {
     println!("================ ICMP Time Exceeded ================");
     println!("{}", frame.show());
 }
-
 
 // Crea una trama Ethernet que contiene un paquete IPv4
 // cuyo payload es un mensaje ICMP.
@@ -233,10 +218,5 @@ fn ipv4_icmp_frame(
     // ICMP
     ipv4.extend_from_slice(icmp);
 
-    Frame::from_eth(
-        dst,
-        src,
-        [0x08, 0x00],
-        &ipv4,
-    )
+    Frame::from_eth(dst, src, [0x08, 0x00], &ipv4)
 }

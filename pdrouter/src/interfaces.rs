@@ -50,8 +50,17 @@ pub struct ParsedInterfaces {
 
 /// Parsea el contenido de un fichero /etc/network/interfaces.
 pub fn parse_interfaces(content: &str) -> ParsedInterfaces {
-    let empty_iface = InterfaceConfig { name: [0; 16], ip: [0; 4], mask: [0; 4] };
-    let empty_route = RouteEntry { network: [0; 4], mask: [0; 4], next_hop: None, iface: [0; 16] };
+    let empty_iface = InterfaceConfig {
+        name: [0; 16],
+        ip: [0; 4],
+        mask: [0; 4],
+    };
+    let empty_route = RouteEntry {
+        network: [0; 4],
+        mask: [0; 4],
+        next_hop: None,
+        iface: [0; 16],
+    };
     let mut result = ParsedInterfaces {
         ifaces: [empty_iface; MAX_IFACES],
         ifaces_count: 0,
@@ -76,7 +85,11 @@ pub fn parse_interfaces(content: &str) -> ParsedInterfaces {
             // Guardar la interfaz anterior si estaba completa
             if let (Some(n), Some(i), Some(m)) = (current_name, current_ip, current_mask) {
                 if result.ifaces_count < MAX_IFACES {
-                    result.ifaces[result.ifaces_count] = InterfaceConfig { name: n, ip: i, mask: m };
+                    result.ifaces[result.ifaces_count] = InterfaceConfig {
+                        name: n,
+                        ip: i,
+                        mask: m,
+                    };
                     result.ifaces_count += 1;
                 }
             }
@@ -122,7 +135,11 @@ pub fn parse_interfaces(content: &str) -> ParsedInterfaces {
     // Guardar la última interfaz
     if let (Some(n), Some(i), Some(m)) = (current_name, current_ip, current_mask) {
         if result.ifaces_count < MAX_IFACES {
-            result.ifaces[result.ifaces_count] = InterfaceConfig { name: n, ip: i, mask: m };
+            result.ifaces[result.ifaces_count] = InterfaceConfig {
+                name: n,
+                ip: i,
+                mask: m,
+            };
             result.ifaces_count += 1;
         }
     }
@@ -170,7 +187,12 @@ fn parse_up_route(s: &str, iface: [u8; 16]) -> Option<RouteEntry> {
 }
 
 fn apply_mask(ip: [u8; 4], mask: [u8; 4]) -> [u8; 4] {
-    [ip[0] & mask[0], ip[1] & mask[1], ip[2] & mask[2], ip[3] & mask[3]]
+    [
+        ip[0] & mask[0],
+        ip[1] & mask[1],
+        ip[2] & mask[2],
+        ip[3] & mask[3],
+    ]
 }
 
 // =============================================================================
@@ -228,7 +250,9 @@ iface eth1 inet static
         let mut connected_idx = 0usize;
         for k in 0..r.routes_count {
             if r.routes[k].next_hop.is_none() {
-                if connected_count == 0 { connected_idx = k; }
+                if connected_count == 0 {
+                    connected_idx = k;
+                }
                 connected_count += 1;
             }
         }
@@ -244,7 +268,9 @@ iface eth1 inet static
         let mut default_idx = 0usize;
         for k in 0..r.routes_count {
             if r.routes[k].mask == [0, 0, 0, 0] {
-                if default_count == 0 { default_idx = k; }
+                if default_count == 0 {
+                    default_idx = k;
+                }
                 default_count += 1;
             }
         }
@@ -259,7 +285,9 @@ iface eth1 inet static
         let mut static_idx = 0usize;
         for k in 0..r.routes_count {
             if r.routes[k].network == [10, 0, 3, 0] && r.routes[k].mask == [255, 255, 255, 0] {
-                if static_count == 0 { static_idx = k; }
+                if static_count == 0 {
+                    static_idx = k;
+                }
                 static_count += 1;
             }
         }

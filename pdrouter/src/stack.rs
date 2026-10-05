@@ -1,4 +1,4 @@
-// stack — Código principal del router que ejecuta el hilo de la red, que llama 
+// stack — Código principal del router que ejecuta el hilo de la red, que llama
 // a fn run_stack() desde main()
 //
 // Gestiona todas las interfaces Ethernet simultáneamente (poll con timeout 1ms
@@ -36,9 +36,9 @@ use crate::arp::{
 };
 use crate::eth::{EthView, ETH_HEADER_SIZE, MAX_FRAME_SIZE};
 use crate::icmp::{
-    handle_echo_reply, handle_echo_request, write_icmp_echo_request_frame, ICMP_ECHO_FRAME_LEN,
+    handle_echo_reply, handle_echo_request, write_icmp_echo_request_frame,
     write_icmp_host_unreachable_frame, write_icmp_net_unreachable_frame,
-    write_icmp_time_exceeded_frame,
+    write_icmp_time_exceeded_frame, ICMP_ECHO_FRAME_LEN,
 };
 use crate::interfaces::InterfaceConfig;
 use crate::ipv4::{decrement_ttl_and_recompute_checksum, Ipv4Header, IP_HEADER_MIN_LEN};
@@ -103,7 +103,7 @@ impl Frame {
         &self.data[..self.len]
     }
 }
-*/  
+*/
 
 // =============================================================================
 // Estado interno del hilo de red
@@ -237,7 +237,6 @@ pub fn run_stack(
         stack.port_count
     )));
 
-
     // Bucle principal
     loop {
         // Recepción de tramas Ethernet en los puertos del router
@@ -260,8 +259,8 @@ pub fn run_stack(
         stack.arp_cache.expire_old(ARP_ENTRY_TTL);
         check_arp_timeouts(&mut stack, &ui_tx);
 
-        // Comprobamos si el hilo de la interfaz de usuario nos ha enviado algún 
-        // comando 
+        // Comprobamos si el hilo de la interfaz de usuario nos ha enviado algún
+        // comando
         match ui_rx.try_recv() {
             Ok(Command::Quit) => break,
             Ok(cmd) => handle_command(&mut stack, &ui_tx, cmd),
@@ -278,7 +277,9 @@ fn process_frame(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, in_port: usize,
     if packet.len < ETH_HEADER_SIZE {
         return;
     }
-    let eth = EthView { data: packet.as_slice() };
+    let eth = EthView {
+        data: packet.as_slice(),
+    };
 
     // Descartar frames no dirigidos a nosotros (unicast a otro nodo)
     let dst_mac = eth.dst_mac();
@@ -289,7 +290,7 @@ fn process_frame(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, in_port: usize,
     }
 
     // Hay dos niveles encima de Ethernet: ARP e IP. Despachamos al código
-    // de uno u otro en función del campo tipo de protocolo (EtherType) de 
+    // de uno u otro en función del campo tipo de protocolo (EtherType) de
     // la trama Ethernet
     if eth.is_arp() {
         process_arp(stack, ui_tx, in_port, packet.as_slice());
@@ -335,7 +336,11 @@ fn process_arp(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, in_port: usize, p
             let our_ip = stack.ports[port_idx].as_ref().unwrap().ip;
             let mut reply = [0u8; ARP_FRAME_SIZE];
             write_arp_reply_frame(&mut reply, &our_mac, our_ip, &sender_mac, sender_ip);
-            let _ = stack.ports[in_port].as_mut().unwrap().tx.send_to(&reply, None);
+            let _ = stack.ports[in_port]
+                .as_mut()
+                .unwrap()
+                .tx
+                .send_to(&reply, None);
             let _ = ui_tx.send(Event::Log(format!(
                 "ARP Request de {} → Reply ({})",
                 format_ip(sender_ip),
@@ -345,15 +350,14 @@ fn process_arp(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, in_port: usize, p
     }
 }
 
-fn process_ipv4(
-    stack: &mut Stack,
-    ui_tx: &mpsc::Sender<Event>,
-    in_port: usize,
-    packet: Frame,
-) {
+fn process_ipv4(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, in_port: usize, packet: Frame) {
     let dst_ip = {
-        let eth = EthView { data: packet.as_slice() };
-        let ip = Ipv4Header { data: eth.payload() };
+        let eth = EthView {
+            data: packet.as_slice(),
+        };
+        let ip = Ipv4Header {
+            data: eth.payload(),
+        };
         ip.dst_ip()
     };
 
@@ -386,12 +390,19 @@ fn process_local(
 
     if let Some((reply_data, reply_len)) = handle_echo_request(packet, &our_mac, our_ip) {
         let eth = EthView { data: packet };
-        let ip = Ipv4Header { data: eth.payload() };
+        let ip = Ipv4Header {
+            data: eth.payload(),
+        };
         let _ = ui_tx.send(Event::Log(format!(
             "Ping de {} recibido (TTL={})",
-            format_ip(ip.src_ip()), ip.ttl()
+            format_ip(ip.src_ip()),
+            ip.ttl()
         )));
-        let _ = stack.ports[in_port].as_mut().unwrap().tx.send_to(&reply_data[..reply_len], None);
+        let _ = stack.ports[in_port]
+            .as_mut()
+            .unwrap()
+            .tx
+            .send_to(&reply_data[..reply_len], None);
         return;
     }
 
@@ -408,8 +419,12 @@ fn forward_packet(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, mut packet: Fr
 
     // Extraer los datos necesarios antes de mutar el buffer
     let (src_ip, dst_ip, orig_ip_header, orig_8_bytes, ttl) = {
-        let eth = EthView { data: packet.as_slice() };
-        let ip = Ipv4Header { data: eth.payload() };
+        let eth = EthView {
+            data: packet.as_slice(),
+        };
+        let ip = Ipv4Header {
+            data: eth.payload(),
+        };
         let src = ip.src_ip();
         let dst = ip.dst_ip();
         let hdr_len = ip.ihl_bytes().min(IP_HEADER_MIN_LEN);
@@ -426,9 +441,18 @@ fn forward_packet(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, mut packet: Fr
     if ttl <= 1 {
         let _ = ui_tx.send(Event::Log(format!(
             "TTL Exceeded: {} → {} (TTL={})",
-            format_ip(src_ip), format_ip(dst_ip), ttl
+            format_ip(src_ip),
+            format_ip(dst_ip),
+            ttl
         )));
-        send_icmp_error(stack, ui_tx, src_ip, &orig_ip_header, &orig_8_bytes, IcmpErrorKind::TimeExceeded);
+        send_icmp_error(
+            stack,
+            ui_tx,
+            src_ip,
+            &orig_ip_header,
+            &orig_8_bytes,
+            IcmpErrorKind::TimeExceeded,
+        );
         return;
     }
 
@@ -440,9 +464,18 @@ fn forward_packet(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, mut packet: Fr
         None => {
             let _ = ui_tx.send(Event::Log(format!(
                 "Net Unreachable: {} → {} (TTL={}), sin ruta",
-                format_ip(src_ip), format_ip(dst_ip), ttl
+                format_ip(src_ip),
+                format_ip(dst_ip),
+                ttl
             )));
-            send_icmp_error(stack, ui_tx, src_ip, &orig_ip_header, &orig_8_bytes, IcmpErrorKind::NetUnreachable);
+            send_icmp_error(
+                stack,
+                ui_tx,
+                src_ip,
+                &orig_ip_header,
+                &orig_8_bytes,
+                IcmpErrorKind::NetUnreachable,
+            );
             return;
         }
     };
@@ -453,7 +486,9 @@ fn forward_packet(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, mut packet: Fr
 
     let _ = ui_tx.send(Event::Log(format!(
         "{} → {} (TTL={}) via {} ({})",
-        format_ip(src_ip), format_ip(dst_ip), ttl - 1,
+        format_ip(src_ip),
+        format_ip(dst_ip),
+        ttl - 1,
         format_ip(next_hop),
         iface_str(&stack.ports[out_port].as_ref().unwrap().name)
     )));
@@ -468,23 +503,26 @@ fn forward_packet(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, mut packet: Fr
 /// Envía `frame` al next-hop usando la caché ARP.
 /// Si no hay entrada ARP, encola el frame y lanza ARP Request.
 /// El frame debe tener [0..6] disponibles para la dst MAC y [6..12] ya con nuestra MAC.
-fn send_frame_with_arp(
-    stack: &mut Stack,
-    mut frame: Frame,
-    next_hop: [u8; 4],
-    out_port: usize,
-) {
+fn send_frame_with_arp(stack: &mut Stack, mut frame: Frame, next_hop: [u8; 4], out_port: usize) {
     match stack.arp_cache.lookup(next_hop) {
         Some(dst_mac) => {
             frame.data[0..6].copy_from_slice(&dst_mac);
-            let _ = stack.ports[out_port].as_mut().unwrap().tx.send_to(frame.as_slice(), None);
+            let _ = stack.ports[out_port]
+                .as_mut()
+                .unwrap()
+                .tx
+                .send_to(frame.as_slice(), None);
         }
         None => {
             send_arp_request(stack, out_port, next_hop);
             if stack.pending_arp_count < MAX_PENDING_ARP {
                 stack.pending_arp[stack.pending_arp_count] = Some((
                     next_hop,
-                    PendingPacket { frame, out_iface_idx: out_port, enqueued_at: Instant::now() },
+                    PendingPacket {
+                        frame,
+                        out_iface_idx: out_port,
+                        enqueued_at: Instant::now(),
+                    },
                 ));
                 stack.pending_arp_count += 1;
             }
@@ -529,13 +567,28 @@ fn send_icmp_error(
     // Construir el frame con dst MAC provisional [0;6]; se rellenará en send_frame_with_arp
     let arr = match kind {
         IcmpErrorKind::TimeExceeded => write_icmp_time_exceeded_frame(
-            &our_mac, our_ip, &[0; 6], error_dst_ip, orig_ip_header, orig_8_bytes,
+            &our_mac,
+            our_ip,
+            &[0; 6],
+            error_dst_ip,
+            orig_ip_header,
+            orig_8_bytes,
         ),
         IcmpErrorKind::NetUnreachable => write_icmp_net_unreachable_frame(
-            &our_mac, our_ip, &[0; 6], error_dst_ip, orig_ip_header, orig_8_bytes,
+            &our_mac,
+            our_ip,
+            &[0; 6],
+            error_dst_ip,
+            orig_ip_header,
+            orig_8_bytes,
         ),
         IcmpErrorKind::HostUnreachable => write_icmp_host_unreachable_frame(
-            &our_mac, our_ip, &[0; 6], error_dst_ip, orig_ip_header, orig_8_bytes,
+            &our_mac,
+            our_ip,
+            &[0; 6],
+            error_dst_ip,
+            orig_ip_header,
+            orig_8_bytes,
         ),
     };
 
@@ -571,7 +624,11 @@ fn send_arp_request(stack: &mut Stack, out_port: usize, target_ip: [u8; 4]) {
     let our_ip = stack.ports[out_port].as_ref().unwrap().ip;
     let mut req = [0u8; ARP_FRAME_SIZE];
     write_arp_request_frame(&mut req, &our_mac, our_ip, target_ip);
-    let _ = stack.ports[out_port].as_mut().unwrap().tx.send_to(&req, None);
+    let _ = stack.ports[out_port]
+        .as_mut()
+        .unwrap()
+        .tx
+        .send_to(&req, None);
 }
 
 /// Detecta paquetes cuya resolución ARP lleva más de ARP_TIMEOUT sin respuesta
@@ -608,8 +665,12 @@ fn check_arp_timeouts(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>) {
                 continue;
             }
 
-            let eth = EthView { data: pkt.frame.as_slice() };
-            let ip = Ipv4Header { data: eth.payload() };
+            let eth = EthView {
+                data: pkt.frame.as_slice(),
+            };
+            let ip = Ipv4Header {
+                data: eth.payload(),
+            };
             let src_ip = ip.src_ip();
             let dst_ip = ip.dst_ip();
 
@@ -646,7 +707,11 @@ fn check_arp_timeouts(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>) {
                 format_ip(src_ip)
             )));
             send_icmp_error(
-                stack, ui_tx, src_ip, &orig_ip_header, &orig_8_bytes,
+                stack,
+                ui_tx,
+                src_ip,
+                &orig_ip_header,
+                &orig_8_bytes,
                 IcmpErrorKind::HostUnreachable,
             );
             // No incrementamos i (se desplazó hacia la izquierda)
@@ -680,9 +745,11 @@ fn deliver_pending_arp(
             let out_mac = stack.ports[pkt.out_iface_idx].as_ref().unwrap().mac;
             pkt.frame.data[0..6].copy_from_slice(&resolved_mac);
             pkt.frame.data[6..12].copy_from_slice(&out_mac);
-            let _ = stack.ports[pkt.out_iface_idx].as_mut().unwrap().tx.send_to(
-                pkt.frame.as_slice(), None,
-            );
+            let _ = stack.ports[pkt.out_iface_idx]
+                .as_mut()
+                .unwrap()
+                .tx
+                .send_to(pkt.frame.as_slice(), None);
             let _ = ui_tx.send(Event::Log(format!(
                 "ARP resuelto {}, paquete pendiente entregado",
                 format_ip(resolved_ip)
@@ -717,8 +784,18 @@ fn handle_command(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, cmd: Command) 
                 )));
             }
         }
-        Command::AddRoute { network, mask, next_hop, iface } => {
-            let entry = RouteEntry { network, mask, next_hop, iface: iface_name(&iface) };
+        Command::AddRoute {
+            network,
+            mask,
+            next_hop,
+            iface,
+        } => {
+            let entry = RouteEntry {
+                network,
+                mask,
+                next_hop,
+                iface: iface_name(&iface),
+            };
             if stack.routing.insert(entry) {
                 let _ = ui_tx.send(Event::Log(format!(
                     "Ruta añadida: {}/{}",
@@ -760,7 +837,10 @@ fn handle_command(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, cmd: Command) 
                     s.push('\n');
                     s.push_str(&format!(
                         "{:<16}{:<16}{:<16}{}",
-                        dst, gw, format_ip(e.mask), iface_str(&e.iface)
+                        dst,
+                        gw,
+                        format_ip(e.mask),
+                        iface_str(&e.iface)
                     ));
                 }
             }
@@ -775,7 +855,8 @@ fn handle_command(stack: &mut Stack, ui_tx: &mpsc::Sender<Event>, cmd: Command) 
                 }
                 s.push_str(&format!(
                     "{}  {}",
-                    format_ip(entries[k].ip), format_mac(&entries[k].mac)
+                    format_ip(entries[k].ip),
+                    format_mac(&entries[k].mac)
                 ));
             }
             let _ = ui_tx.send(Event::ArpDump(s));

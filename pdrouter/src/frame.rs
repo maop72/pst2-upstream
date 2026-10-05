@@ -2,9 +2,7 @@
 // Octubre 2026
 
 use crate::arp::ETH_TYPE_ARP;
-use crate::eth::{
-    write_eth_header, EthView, ETH_HEADER_SIZE, ETH_TYPE_IPV4, MAX_FRAME_SIZE,
-};
+use crate::eth::{write_eth_header, EthView, ETH_HEADER_SIZE, ETH_TYPE_IPV4, MAX_FRAME_SIZE};
 use crate::ipv4::{Ipv4Header, IP_HEADER_MIN_LEN};
 use crate::utils::{format_ip, format_mac};
 
@@ -26,12 +24,7 @@ impl Frame {
         &self.data[..self.len]
     }
 
-    pub fn from_eth(
-        dst: [u8; 6],
-        src: [u8; 6],
-        ethertype: [u8; 2],
-        payload: &[u8],
-    ) -> Frame {
+    pub fn from_eth(dst: [u8; 6], src: [u8; 6], ethertype: [u8; 2], payload: &[u8]) -> Frame {
         let len = ETH_HEADER_SIZE + payload.len();
 
         assert!(
@@ -42,12 +35,7 @@ impl Frame {
 
         let mut frame = Frame::new();
 
-        write_eth_header(
-            &mut frame.data[..ETH_HEADER_SIZE],
-            &dst,
-            &src,
-            ethertype,
-        );
+        write_eth_header(&mut frame.data[..ETH_HEADER_SIZE], &dst, &src, ethertype);
 
         frame.data[ETH_HEADER_SIZE..len].copy_from_slice(payload);
         frame.len = len;
@@ -70,10 +58,7 @@ impl<'a> EthView<'a> {
     pub fn show(&self) -> String {
         let mut text = String::new();
 
-        text.push_str(&format!(
-            "Frame\n  Longitud: {} bytes\n",
-            self.data.len()
-        ));
+        text.push_str(&format!("Frame\n  Longitud: {} bytes\n", self.data.len()));
 
         if self.data.len() < ETH_HEADER_SIZE {
             text.push_str("  Trama Ethernet incompleta");
@@ -81,14 +66,8 @@ impl<'a> EthView<'a> {
         }
 
         text.push_str("  Ethernet\n");
-        text.push_str(&format!(
-            "    Origen:  {}\n",
-            format_mac(self.src_mac())
-        ));
-        text.push_str(&format!(
-            "    Destino: {}\n",
-            format_mac(self.dst_mac())
-        ));
+        text.push_str(&format!("    Origen:  {}\n", format_mac(self.src_mac())));
+        text.push_str(&format!("    Destino: {}\n", format_mac(self.dst_mac())));
 
         let ethertype = self.ether_type();
 
@@ -123,23 +102,13 @@ impl<'a> EthView<'a> {
 
         let operation = u16::from_be_bytes([data[6], data[7]]);
 
-        let sender_mac = [
-            data[8], data[9], data[10],
-            data[11], data[12], data[13],
-        ];
+        let sender_mac = [data[8], data[9], data[10], data[11], data[12], data[13]];
 
-        let sender_ip = [
-            data[14], data[15], data[16], data[17],
-        ];
+        let sender_ip = [data[14], data[15], data[16], data[17]];
 
-        let target_mac = [
-            data[18], data[19], data[20],
-            data[21], data[22], data[23],
-        ];
+        let target_mac = [data[18], data[19], data[20], data[21], data[22], data[23]];
 
-        let target_ip = [
-            data[24], data[25], data[26], data[27],
-        ];
+        let target_ip = [data[24], data[25], data[26], data[27]];
 
         let operation_name = match operation {
             1 => "Request",
@@ -178,18 +147,9 @@ impl<'a> EthView<'a> {
         let ip = Ipv4Header { data };
 
         text.push_str("    IPv4\n");
-        text.push_str(&format!(
-            "      Origen:    {}\n",
-            format_ip(ip.src_ip())
-        ));
-        text.push_str(&format!(
-            "      Destino:   {}\n",
-            format_ip(ip.dst_ip())
-        ));
-        text.push_str(&format!(
-            "      TTL:       {}\n",
-            ip.ttl()
-        ));
+        text.push_str(&format!("      Origen:    {}\n", format_ip(ip.src_ip())));
+        text.push_str(&format!("      Destino:   {}\n", format_ip(ip.dst_ip())));
+        text.push_str(&format!("      TTL:       {}\n", ip.ttl()));
 
         match ip.protocol() {
             1 => {
@@ -197,10 +157,7 @@ impl<'a> EthView<'a> {
                 text.push_str(&self.show_icmp(&ip));
             }
             protocol => {
-                text.push_str(&format!(
-                    "      Protocolo: {}",
-                    protocol
-                ));
+                text.push_str(&format!("      Protocolo: {}", protocol));
             }
         }
 
@@ -235,10 +192,7 @@ impl<'a> EthView<'a> {
                     _ => "código desconocido",
                 };
 
-                text.push_str(&format!(
-                    "        Código: {} ({})",
-                    code, description
-                ));
+                text.push_str(&format!("        Código: {} ({})", code, description));
             }
 
             8 => {
@@ -253,21 +207,12 @@ impl<'a> EthView<'a> {
                     _ => "código desconocido",
                 };
 
-                text.push_str(&format!(
-                    "        Código: {} ({})",
-                    code, description
-                ));
+                text.push_str(&format!("        Código: {} ({})", code, description));
             }
 
             _ => {
-                text.push_str(&format!(
-                    "        Tipo: {}\n",
-                    icmp_type
-                ));
-                text.push_str(&format!(
-                    "        Código: {}",
-                    code
-                ));
+                text.push_str(&format!("        Tipo: {}\n", icmp_type));
+                text.push_str(&format!("        Código: {}", code));
             }
         }
 

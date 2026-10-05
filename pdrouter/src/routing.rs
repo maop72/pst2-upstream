@@ -154,7 +154,12 @@ mod tests {
     use super::*;
 
     fn entry(net: [u8; 4], mask: [u8; 4], nh: Option<[u8; 4]>, iface: &str) -> RouteEntry {
-        RouteEntry { network: net, mask, next_hop: nh, iface: iface_name(iface) }
+        RouteEntry {
+            network: net,
+            mask,
+            next_hop: nh,
+            iface: iface_name(iface),
+        }
     }
 
     #[test]
@@ -173,7 +178,7 @@ mod tests {
     #[test]
     fn lookup_longest_prefix_match() {
         let mut t = RoutingTable::new();
-        t.insert(entry([10, 0, 0, 0], [255, 0, 0, 0], None, "eth1"));   // /8
+        t.insert(entry([10, 0, 0, 0], [255, 0, 0, 0], None, "eth1")); // /8
         t.insert(entry([10, 0, 1, 0], [255, 255, 255, 0], None, "eth0")); // /24
 
         let r = t.lookup([10, 0, 1, 5]).unwrap();
@@ -185,7 +190,12 @@ mod tests {
     #[test]
     fn lookup_default_route() {
         let mut t = RoutingTable::new();
-        t.insert(entry([0, 0, 0, 0], [0, 0, 0, 0], Some([10, 0, 1, 254]), "eth0"));
+        t.insert(entry(
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            Some([10, 0, 1, 254]),
+            "eth0",
+        ));
         let r = t.lookup([8, 8, 8, 8]).unwrap();
         assert_eq!(r.next_hop, Some([10, 0, 1, 254]));
     }

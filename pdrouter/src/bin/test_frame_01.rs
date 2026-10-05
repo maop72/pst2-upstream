@@ -23,19 +23,16 @@ use frame::Frame;
 fn main() {
     let dst = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff];
     let src = [0x00, 0x11, 0x22, 0x33, 0x44, 0x55];
+
+    // Usaremos este valor que no se corresponde con ningún tipo real
     let ethertype = [0x12, 0x34];
 
-    let payload = [1, 2, 3, 4, 5, 6, 7];
+    let payload = [1, 2, 3, 4, 5];
 
-    // Crear la trama
-    let frame = Frame::from_eth(
-        dst,
-        src,
-        ethertype,
-        &payload,
-    );
+    // Crea la trama
+    let frame = Frame::from_eth(dst, src, ethertype, &payload);
 
-    // Acceder a la cabecera Ethernet
+    // Crea una vista para acceder a la información Ethernet
     let eth = frame.eth();
 
     println!("Origen:    {:?}", eth.src_mac());

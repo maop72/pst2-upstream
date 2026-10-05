@@ -52,7 +52,9 @@ pub fn run_ui(ui_tx: mpsc::Sender<Command>, ui_rx: mpsc::Receiver<Event>) {
             tui.print(&msg);
         }
 
-        let Some(line) = tui.read_line() else { continue };
+        let Some(line) = tui.read_line() else {
+            continue;
+        };
         let line = line.trim().to_string();
         if line.is_empty() {
             continue;
@@ -91,7 +93,9 @@ pub fn run_ui(ui_tx: mpsc::Sender<Command>, ui_rx: mpsc::Receiver<Event>) {
 
         if let Some(rest) = line.strip_prefix("add route ") {
             match parse_add_route(rest) {
-                Ok(cmd) => { let _ = ui_tx.send(cmd); }
+                Ok(cmd) => {
+                    let _ = ui_tx.send(cmd);
+                }
                 Err(e) => tui.print(&format!("Error: {e}")),
             }
             continue;
@@ -99,7 +103,9 @@ pub fn run_ui(ui_tx: mpsc::Sender<Command>, ui_rx: mpsc::Receiver<Event>) {
 
         if let Some(rest) = line.strip_prefix("del route ") {
             match parse_del_route(rest) {
-                Ok(cmd) => { let _ = ui_tx.send(cmd); }
+                Ok(cmd) => {
+                    let _ = ui_tx.send(cmd);
+                }
                 Err(e) => tui.print(&format!("Error: {e}")),
             }
             continue;
@@ -116,9 +122,7 @@ pub fn run_ui(ui_tx: mpsc::Sender<Command>, ui_rx: mpsc::Receiver<Event>) {
 /// Parsea "10.0.3.0/24 [via 10.0.2.2] dev eth0"
 fn parse_add_route(s: &str) -> Result<Command, String> {
     // Separar "dev <iface>" al final
-    let (prefix_part, iface) = s
-        .rsplit_once(" dev ")
-        .ok_or("falta 'dev <iface>'")?;
+    let (prefix_part, iface) = s.rsplit_once(" dev ").ok_or("falta 'dev <iface>'")?;
     let iface = iface.trim().to_string();
 
     // ¿Hay "via"?
@@ -132,7 +136,12 @@ fn parse_add_route(s: &str) -> Result<Command, String> {
     // Parsear red/máscara
     let (network, mask) = parse_net_mask(net_part)?;
 
-    Ok(Command::AddRoute { network, mask, next_hop, iface })
+    Ok(Command::AddRoute {
+        network,
+        mask,
+        next_hop,
+        iface,
+    })
 }
 
 /// Parsea "10.0.3.0/24"

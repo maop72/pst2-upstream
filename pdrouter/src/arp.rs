@@ -53,18 +53,18 @@ pub const ARP_FRAME_SIZE: usize = ETH_HEADER_SIZE + ARP_PAYLOAD_LEN; // 42 bytes
 // Tamaños de campo fijos definidos por el protocolo
 const ARP_HTYPE_LEN: usize = 2;
 const ARP_PTYPE_LEN: usize = 2;
-const ARP_OP_LEN:    usize = 2;
+const ARP_OP_LEN: usize = 2;
 
 // Inicio de cada campo (relativo al byte 0 del payload ARP)
-const ARP_HTYPE_START:      usize = 0;
-const ARP_PTYPE_START:      usize = ARP_HTYPE_START + ARP_HTYPE_LEN;
-const ARP_HLEN_OFF:         usize = ARP_PTYPE_START + ARP_PTYPE_LEN;
-const ARP_PLEN_OFF:         usize = ARP_HLEN_OFF + 1;
-const ARP_OP_START:         usize = ARP_PLEN_OFF + 1;
+const ARP_HTYPE_START: usize = 0;
+const ARP_PTYPE_START: usize = ARP_HTYPE_START + ARP_HTYPE_LEN;
+const ARP_HLEN_OFF: usize = ARP_PTYPE_START + ARP_PTYPE_LEN;
+const ARP_PLEN_OFF: usize = ARP_HLEN_OFF + 1;
+const ARP_OP_START: usize = ARP_PLEN_OFF + 1;
 const ARP_SENDER_MAC_START: usize = ARP_OP_START + ARP_OP_LEN;
-const ARP_SENDER_IP_START:  usize = ARP_SENDER_MAC_START + ARP_HLEN as usize;
-const ARP_TARGET_MAC_START: usize = ARP_SENDER_IP_START  + ARP_PLEN as usize;
-const ARP_TARGET_IP_START:  usize = ARP_TARGET_MAC_START + ARP_HLEN as usize;
+const ARP_SENDER_IP_START: usize = ARP_SENDER_MAC_START + ARP_HLEN as usize;
+const ARP_TARGET_MAC_START: usize = ARP_SENDER_IP_START + ARP_PLEN as usize;
+const ARP_TARGET_IP_START: usize = ARP_TARGET_MAC_START + ARP_HLEN as usize;
 
 // =============================================================================
 // Vista de lectura — zero-copy sobre el payload ARP (28 bytes)
@@ -96,12 +96,20 @@ impl<'a> ArpView<'a> {
         &self.data[ARP_SENDER_MAC_START..ARP_SENDER_IP_START]
     }
     pub fn sender_ip(&self) -> [u8; 4] {
-        [self.data[ARP_SENDER_IP_START], self.data[ARP_SENDER_IP_START + 1],
-         self.data[ARP_SENDER_IP_START + 2], self.data[ARP_SENDER_IP_START + 3]]
+        [
+            self.data[ARP_SENDER_IP_START],
+            self.data[ARP_SENDER_IP_START + 1],
+            self.data[ARP_SENDER_IP_START + 2],
+            self.data[ARP_SENDER_IP_START + 3],
+        ]
     }
     pub fn target_ip(&self) -> [u8; 4] {
-        [self.data[ARP_TARGET_IP_START], self.data[ARP_TARGET_IP_START + 1],
-         self.data[ARP_TARGET_IP_START + 2], self.data[ARP_TARGET_IP_START + 3]]
+        [
+            self.data[ARP_TARGET_IP_START],
+            self.data[ARP_TARGET_IP_START + 1],
+            self.data[ARP_TARGET_IP_START + 2],
+            self.data[ARP_TARGET_IP_START + 3],
+        ]
     }
 }
 
@@ -138,7 +146,12 @@ pub fn write_arp_reply_frame(
     target_mac: &[u8],
     target_ip: [u8; 4],
 ) {
-    write_eth_header(&mut buf[..ETH_HEADER_SIZE], target_mac, our_mac, ETH_TYPE_ARP);
+    write_eth_header(
+        &mut buf[..ETH_HEADER_SIZE],
+        target_mac,
+        our_mac,
+        ETH_TYPE_ARP,
+    );
     write_arp_payload(buf, &ARP_OP_REPLY, our_mac, &our_ip, target_mac, &target_ip);
 }
 
@@ -149,8 +162,20 @@ pub fn write_arp_request_frame(
     our_ip: [u8; 4],
     target_ip: [u8; 4],
 ) {
-    write_eth_header(&mut buf[..ETH_HEADER_SIZE], &MAC_BROADCAST, our_mac, ETH_TYPE_ARP);
-    write_arp_payload(buf, &ARP_OP_REQUEST, our_mac, &our_ip, &MAC_ZERO, &target_ip);
+    write_eth_header(
+        &mut buf[..ETH_HEADER_SIZE],
+        &MAC_BROADCAST,
+        our_mac,
+        ETH_TYPE_ARP,
+    );
+    write_arp_payload(
+        buf,
+        &ARP_OP_REQUEST,
+        our_mac,
+        &our_ip,
+        &MAC_ZERO,
+        &target_ip,
+    );
 }
 
 // =============================================================================
@@ -220,7 +245,11 @@ impl ArpCache {
             self.len += 1;
             p
         };
-        self.entries[pos] = ArpEntry { ip, mac, inserted_at: Instant::now() };
+        self.entries[pos] = ArpEntry {
+            ip,
+            mac,
+            inserted_at: Instant::now(),
+        };
         self.entries[..self.len].sort_by_key(|e| e.ip);
         true
     }

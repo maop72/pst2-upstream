@@ -57,7 +57,12 @@ enum Inner {
 impl Tui {
     pub fn new() -> Self {
         if terminal::enable_raw_mode().is_ok() {
-            let _ = execute!(io::stdout(), EnterAlternateScreen, EnableBlinking, SetCursorStyle::BlinkingBar);
+            let _ = execute!(
+                io::stdout(),
+                EnterAlternateScreen,
+                EnableBlinking,
+                SetCursorStyle::BlinkingBar
+            );
             if let Ok(t) = Terminal::new(CrosstermBackend::new(io::stdout())) {
                 let mut tui = Self {
                     inner: Inner::Ratatui {
@@ -84,7 +89,9 @@ impl Tui {
                 }
             }
         });
-        Self { inner: Inner::Plain { stdin_rx: rx } }
+        Self {
+            inner: Inner::Plain { stdin_rx: rx },
+        }
     }
 
     /// Muestra `msg` en la zona de log (Ratatui) o en stdout (Plain).
@@ -147,7 +154,14 @@ impl Tui {
                 Some("quit".to_string())
             }
             KeyCode::Enter => {
-                if let Inner::Ratatui { input, history, history_len, history_pos, .. } = &mut self.inner {
+                if let Inner::Ratatui {
+                    input,
+                    history,
+                    history_len,
+                    history_pos,
+                    ..
+                } = &mut self.inner
+                {
                     let line = input.trim().to_string();
                     input.clear();
                     *history_pos = None;
@@ -161,7 +175,14 @@ impl Tui {
                 }
             }
             KeyCode::Up => {
-                if let Inner::Ratatui { input, history, history_len, history_pos, .. } = &mut self.inner {
+                if let Inner::Ratatui {
+                    input,
+                    history,
+                    history_len,
+                    history_pos,
+                    ..
+                } = &mut self.inner
+                {
                     if *history_len > 0 {
                         let new_pos = match *history_pos {
                             None => *history_len - 1,
@@ -175,7 +196,14 @@ impl Tui {
                 None
             }
             KeyCode::Down => {
-                if let Inner::Ratatui { input, history, history_len, history_pos, .. } = &mut self.inner {
+                if let Inner::Ratatui {
+                    input,
+                    history,
+                    history_len,
+                    history_pos,
+                    ..
+                } = &mut self.inner
+                {
                     match *history_pos {
                         None => {}
                         Some(p) if p + 1 >= *history_len => {
@@ -191,7 +219,10 @@ impl Tui {
                 None
             }
             KeyCode::Char(c) => {
-                if let Inner::Ratatui { input, history_pos, .. } = &mut self.inner {
+                if let Inner::Ratatui {
+                    input, history_pos, ..
+                } = &mut self.inner
+                {
                     *history_pos = None;
                     input.push(c);
                 }
@@ -211,12 +242,22 @@ impl Tui {
     }
 
     fn draw(&mut self) {
-        if let Inner::Ratatui { terminal, log, input, .. } = &mut self.inner {
+        if let Inner::Ratatui {
+            terminal,
+            log,
+            input,
+            ..
+        } = &mut self.inner
+        {
             let input_snap = input.clone();
 
             // Determinar altura disponible para el log
             let total_height = terminal.size().map(|s| s.height as usize).unwrap_or(25);
-            let log_height = if total_height > 1 { total_height - 1 } else { 1 };
+            let log_height = if total_height > 1 {
+                total_height - 1
+            } else {
+                1
+            };
 
             // Contar líneas totales en el log
             let mut total_lines = 0usize;

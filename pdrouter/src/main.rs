@@ -1,11 +1,12 @@
 // router — Pila IP con encaminamiento sobre interfaces Ethernet.
 //
 // Arranca leyendo /etc/network/interfaces, construye la tabla de rutas
-// inicial y lanza el hilo de red. La interfaz de usuario (UI) corre en 
+// inicial y lanza el hilo de red. La interfaz de usuario (UI) corre en
 // el hilo principal.
 
 mod arp;
 mod eth;
+mod frame;
 mod icmp;
 mod interfaces;
 mod ipv4;
@@ -14,7 +15,6 @@ mod stack;
 mod tui;
 mod ui;
 mod utils;
-mod frame;
 
 use interfaces::parse_interfaces;
 use stack::run_stack;
