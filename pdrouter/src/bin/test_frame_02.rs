@@ -18,7 +18,7 @@ mod utils;
 #[path = "../frame.rs"]
 mod frame;
 
-use frame::Frame;
+use crate::frame::Frame;
 
 fn main() {
     let dst = [0xff, 0xff, 0xff, 0xff, 0xff, 0xff];

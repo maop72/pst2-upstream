@@ -18,7 +18,7 @@ mod utils;
 #[path = "../frame.rs"]
 mod frame;
 
-use frame::Frame;
+use crate::frame::Frame;
 
 fn main() {
     // Direcciones ethernet de origen y destino.
