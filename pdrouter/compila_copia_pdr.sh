@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# deploy.sh
+# compila_copia_pdr.sh
 
 # Compila pdrotuer con musl y lo copia en el directorio shared del
 # lab kathará
@@ -12,7 +12,6 @@
 # Para poder compilar en el host:
 # sudo apt install musl-tools
 # rustup target add x86_64-unknown-linux-musl
-
 
 
 LAB=~/pst2/lab01
